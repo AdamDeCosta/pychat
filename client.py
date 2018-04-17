@@ -4,7 +4,7 @@ import argparse
 import asyncio
 import struct
 import json
-import lib
+from lib import *
 
 class ChatClient(asyncio.Protocol):
     
@@ -19,14 +19,18 @@ class ChatClient(asyncio.Protocol):
         socket = self.transport.get_extra_info('socket')
         socket.setblocking(1)
         while True:
-           self.username = input("Enter username: ")
-           payload = lib.message_with_length(self.username.encode('ASCII'))
-           socket.sendall(payload)
-           name_length = socket.recv(4)
-           name_length = struct.unpack('! I', name_length)
-           username = socket.recv(name_length[0])
-           print(username)
-           break
+            self.username = input("Enter username: ")
+            payload = message_with_length(self.username.encode('ASCII'))
+            socket.sendall(payload)
+
+            r_length = socket.recv(4)
+            r_length = struct.unpack('! I', r_length)
+
+            response = socket.recv(r_length[0]).decode('ASCII')
+            response = json.loads(response)
+            print(response)
+            
+            break
         socket.setblocking(0)
        
     def data_received(self, data):

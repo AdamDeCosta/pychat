@@ -2,12 +2,13 @@
 
 import asyncio
 import struct
-import random # remove
-import lib
+import json
+from lib import *
 
 class Server(asyncio.Protocol):
 
     clients = {}
+    messages = []
 
     def __init__(self):
         self.data = b''
@@ -17,25 +18,35 @@ class Server(asyncio.Protocol):
         peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(peername))
         self.transport = transport
+        self.username_handler()
 
-        '''
-        # TODO: DEBUG REMOVE AND CHANGE TO USERNAME
-        self.username = str(random.randint(0, 1000))
-        self.clients.update({self.username : self.transport})
-        print(self.clients)
-        # END DEBUG
-        '''
-        
+    def username_handler(self):
         # TODO: HANDLE USERNAME
         socket = self.transport.get_extra_info('socket')
         socket.setblocking(1)
-        name_length = socket.recv(4)
-        name_length = struct.unpack('! I', name_length)
-        username = socket.recv(name_length[0])
-        message = lib.message_with_length(username)
-        socket.sendall(message)
-        print(b"USERNAME: " + username)
+        while True:
+            name_length = socket.recv(4)
+            name_length = struct.unpack('! I', name_length)
+            username = socket.recv(name_length[0])
+            username = username.decode('ASCII')
+
+            if self.is_unique(username):
+                break
+            else:
+                payload = json.dumps({'USERNAME_ACCEPTED': False, 'INFO': 'Username already in use!'}).encode('ASCII')
+                payload = message_with_length(payload)
+                socket.sendall(payload)
+
+        # Send welcome message
+        user_list = self.get_user_list()
+        payload = json.dumps({'USERNAME_ACCEPTED': True, 'INFO': 'Welcome!', 'USER_LIST': user_list, 'MESSAGES': self.messages}).encode('ASCII')
+        payload = message_with_length(payload)
+        socket.sendall(payload)
+        self.clients.update({username: self.transport})
         socket.setblocking(0)
+
+    def get_user_list(self):
+        return [key for key in self.clients]
 
     def data_received(self, data):
         self.data += data
@@ -81,10 +92,12 @@ class Server(asyncio.Protocol):
     def connection_lost(self, exc):
         print('Client left: Message {}'.format(exc))
 
-    @asyncio.coroutine
-    def check_username(self, username):
-        pass
 
+    def is_unique(self, username):
+        for key in self.clients:
+            if key == username:
+                return False
+        return True
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
