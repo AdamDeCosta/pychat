@@ -3,6 +3,8 @@
 import argparse
 import asyncio
 import struct
+import json
+import lib
 
 class ChatClient(asyncio.Protocol):
     
@@ -10,21 +12,37 @@ class ChatClient(asyncio.Protocol):
         self.loop = loop
 
     def connection_made(self, transport):
-       self.transport = transport
-       print("Made Connection!")
+        self.transport = transport
+        print("Made Connection!")
+
+        # TODO: HANDLE USERNAME
+        socket = self.transport.get_extra_info('socket')
+        socket.setblocking(1)
+        while True:
+           self.username = input("Enter username: ")
+           payload = lib.message_with_length(self.username.encode('ASCII'))
+           socket.sendall(payload)
+           name_length = socket.recv(4)
+           name_length = struct.unpack('! I', name_length)
+           username = socket.recv(name_length[0])
+           print(username)
+           break
+        socket.setblocking(0)
        
     def data_received(self, data):
-        print("Received: " + data)
+        print(b"Received: " + data)
 
+    @asyncio.coroutine
     def send_message(self, message):
         length = struct.pack('! I', len(message))
         print(length)
         payload = b''.join([length, message])
-        self.transport.write(payload)
+        yield self.transport.write(payload)
 
     def connection_lost(self, exc):
         print('Server closed connection')
         self.loop.stop()
+
 
 @asyncio.coroutine
 def handle_user_input(loop, client):
@@ -33,13 +51,13 @@ def handle_user_input(loop, client):
     if user inputs 'quit' stops the event loop
     otherwise just echos user input
     """
+
     while True:
         message = yield from loop.run_in_executor(None, input, "> ")
         if message == "quit":
             loop.stop()
             return
-        while True: 
-            client.send_message(message.encode('ASCII'))
+        yield from client.send_message(message.encode('ASCII'))
         print(message)
 
 
@@ -62,7 +80,6 @@ if __name__ == "__main__":
 
     loop.run_until_complete(handle_user_input(loop, client))
     
-
     try:
         loop.run_forever()
     finally:

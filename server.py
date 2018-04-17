@@ -2,8 +2,12 @@
 
 import asyncio
 import struct
+import random # remove
+import lib
 
 class Server(asyncio.Protocol):
+
+    clients = {}
 
     def __init__(self):
         self.data = b''
@@ -14,11 +18,35 @@ class Server(asyncio.Protocol):
         print('Connection from {}'.format(peername))
         self.transport = transport
 
+        '''
+        # TODO: DEBUG REMOVE AND CHANGE TO USERNAME
+        self.username = str(random.randint(0, 1000))
+        self.clients.update({self.username : self.transport})
+        print(self.clients)
+        # END DEBUG
+        '''
+        
+        # TODO: HANDLE USERNAME
+        socket = self.transport.get_extra_info('socket')
+        socket.setblocking(1)
+        name_length = socket.recv(4)
+        name_length = struct.unpack('! I', name_length)
+        username = socket.recv(name_length[0])
+        message = lib.message_with_length(username)
+        socket.sendall(message)
+        print(b"USERNAME: " + username)
+        socket.setblocking(0)
+
     def data_received(self, data):
         self.data += data
+
+        # TODO: REMOVE DEBUG
         print("Received data: {}".format(data))
         print(len(self.data))
         print("length: {}".format(self.length))
+        # END DEBUG
+
+        # TODO: LOOP TO INTERPRET MESSAGES IF TONS ARE RECEIVED SIMULTANEOUSLY
         if not self.length:
             if len(self.data) < 4:
                 pass
@@ -33,17 +61,29 @@ class Server(asyncio.Protocol):
             if len(self.data) < self.length:
                 pass
             elif len(self.data) == self.length:
+                # TODO: REMOVE DEBUG
                 print("Received message: {}".format(self.data))
                 self.data = b''
                 self.length = None
             else:
                 message = self.data[0:self.length]
+                # TODO: REMOVE DEBUG
                 print("Received message: {}".format(message))
                 self.data = self.data[self.length:]
                 self.length = None
 
+    def send_message(self, message):
+        length = struct.pack('! I', len(message))
+        print(length)
+        payload = b''.join([length, message])
+        yield self.transport.write(payload)
+
     def connection_lost(self, exc):
         print('Client left: Message {}'.format(exc))
+
+    @asyncio.coroutine
+    def check_username(self, username):
+        pass
 
 
 if __name__ == "__main__":
