@@ -5,7 +5,7 @@ import asyncio
 import struct
 import json
 import time
-from lib import *
+from lib import get_items, message_with_length
 
 class ChatClient(asyncio.Protocol):
     
@@ -34,13 +34,14 @@ class ChatClient(asyncio.Protocol):
             response = json.loads(response)
 
             if response.get('USERNAME_ACCEPTED'):
-                output(response.get('INFO'))
+                print(response.get('INFO'))
                 self.user_list = response.get('USER_LIST')
+                print(response)
                 self.messages = response.get('MESSAGES')
+                output(self.messages)
                 break
             else:
-                output('Error: {}'.format(response.get('INFO')))
-
+                print(response.get('INFO'))
 
         socket.setblocking(0)
        
@@ -62,20 +63,20 @@ class ChatClient(asyncio.Protocol):
             if len(self.data) < self.length:
                 pass
             elif len(self.data) == self.length:
-                # TODO: REMOVE DEBUG
-                output(self.data)
+                message = json.loads(self.data.decode('ASCII'))
+                asyncio.ensure_future(self.message_handler(message), loop=self.loop)
                 self.data = b''
                 self.length = None
             else:
                 message = self.data[0:self.length]
-                # TODO: REMOVE DEBUG
-                output(message)
+                message = json.loads(message.decode('ASCII'))
+                asyncio.ensure_future(self.message_handler(message), loop=self.loop)
                 self.data = self.data[self.length:]
                 self.length = None
 
     def send_message(self, message):
 
-        message = json.dumps({ 'MESSAGES': [('SRC': self.username, 'DEST': 'ALL', 'TIMESTAMP': time.gmtime(), 'CONTENT': message)]})
+        message = json.dumps({ 'MESSAGES': [(self.username, 'ALL', time.gmtime(), message)]})
 
         payload = message_with_length(message.encode('ASCII'))
         self.transport.write(payload)
@@ -84,12 +85,32 @@ class ChatClient(asyncio.Protocol):
         output('Server closed connection')
         self.loop.stop()
 
+    async def message_handler(self, message):
+        messages = message.get('MESSAGES')
+        if messages:
+            output(messages)
 
-def output(message):
+        users_joined = message.get('USERS_JOINED')
+        if users_joined:
+            async for user in get_items(users_joined):
+                self.user_list.append(user)
+                print("User: {} has joined.".format(user))
+            print(self.user_list)
+        
+        users_left = message.get('USERS_LEFT')
+        if users_left:
+            async for user in get_items(users_left):
+                self.user_list.remove(user)
+                print("User: {} has left.".format(user))
+
+def output(messages):
     '''
     Output to whatever we have our front end to be
     '''
-    print(message)
+    for m in messages:
+        print("{}: {}".format(m[0], m[3]))
+
+        
 
 @asyncio.coroutine
 def handle_user_input(loop, client):
