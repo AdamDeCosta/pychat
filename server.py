@@ -189,7 +189,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Asynchronous chat server")
     parser.add_argument('host', help="Hostname or IP")
     parser.add_argument('-p', metavar="port", type=int, default=9000, 
-                        help="TCP port (default 1060)")
+                        help="TCP port (default 9000)")
     args = parser.parse_args()
 
     loop = asyncio.get_event_loop()
