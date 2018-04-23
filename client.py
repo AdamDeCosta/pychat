@@ -22,14 +22,23 @@ class ChatClient(asyncio.Protocol):
         socket.setblocking(1)
         while True:
             self.username = input("Enter username: ")
-            payload = message_with_length(self.username.encode('ASCII'))
+            payload = '{"USERNAME": "' + self.username + '"}'
+            payload = message_with_length(payload.encode('ASCII'))
+            print(payload)
             socket.sendall(payload)
 
             r_length = socket.recv(4)
+            print("pre: r_length: \n", r_length)
             r_length = struct.unpack('! I', r_length)
-
-            response = socket.recv(r_length[0]).decode('ASCII')
+            print("post: r_length: \n", r_length[0])
+            response = b''
+            while True:
+                response += socket.recv(r_length[0])
+                if len(response) >= r_length[0]:
+                    break;
+            print("pre: response: \n", response)
             response = json.loads(response)
+            print("post: response: \n", response)
 
             if response.get('USERNAME_ACCEPTED'):
                 print(response.get('INFO'))
@@ -129,8 +138,8 @@ def handle_user_input(loop, client):
 if __name__ == "__main__":
     # Get arguments from command line
     parser = argparse.ArgumentParser(description="Asynchronous chat client")
-    parser.add_argument('host', help="Hostname or IP")
-    parser.add_argument('-p', metavar="port", type=int, default=1060, 
+    parser.add_argument('host', help="Hostname or IP", default="csi235.site")
+    parser.add_argument('-p', metavar="port", type=int, default=9000, 
                         help="TCP port (default 1060)")
     args = parser.parse_args()
 
