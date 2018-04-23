@@ -5,6 +5,7 @@ import asyncio
 import struct
 import json
 import time
+import re
 from lib import get_items, message_with_length
 
 class ChatClient(asyncio.Protocol):
@@ -62,26 +63,42 @@ class ChatClient(asyncio.Protocol):
                 pass
             elif len(self.data) == self.length:
                 message = json.loads(self.data.decode('ASCII'))
-                asyncio.ensure_future(self.message_handler(message), loop=self.loop)
+                asyncio.ensure_future(self.message_handler(message), 
+                                                           loop=self.loop)
                 self.data = b''
                 self.length = None
             else:
                 message = self.data[0:self.length]
                 message = json.loads(message.decode('ASCII'))
-                asyncio.ensure_future(self.message_handler(message), loop=self.loop)
+                asyncio.ensure_future(self.message_handler(message), 
+                                                           loop=self.loop)
                 self.data = self.data[self.length:]
                 self.length = None
 
     def send_message(self, message):
+        dest = re.search(r'@\w+', message)  # returns when @<word> is found
+        if dest:
+            message = json.dumps(
+                { 'MESSAGES': 
+                    [
+                        (self.username, 
+                         dest.group()[1:], 
+                         time.gmtime(), 
+                         message)
+                     ]
+                }).encode('ASCII')
+        else:
+            message = json.dumps(
+                { 'MESSAGES': 
+                    [
+                        (self.username, 'ALL', 
+                        time.gmtime(), 
+                        message)
+                    ]
+                }).encode('ASCII')
 
-        message = json.dumps({ 'MESSAGES': [(self.username, 'ALL', time.gmtime(), message)]})
-
-        payload = message_with_length(message.encode('ASCII'))
-        self.transport.write(payload)
-
-    def connection_lost(self, exc):
-        print(exc)
-        self.loop.stop()
+        message = message_with_length(message)
+        self.transport.write(message)
 
     async def message_handler(self, message):
         messages = message.get('MESSAGES')
@@ -100,6 +117,9 @@ class ChatClient(asyncio.Protocol):
             async for user in get_items(users_left):
                 self.user_list.remove(user)
                 print("User: {} has left.".format(user))
+        error = message.get('ERROR')
+        if error:
+            output([['Server', None, time.gmtime(), error]])
 
 def output(messages):
     '''
