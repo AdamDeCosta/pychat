@@ -32,7 +32,7 @@ class Server(asyncio.Protocol):
             name_length = struct.unpack('! I', name_length)
             username = socket.recv(name_length[0])
             username = username.decode('ASCII')
-
+            username = json.loads(username).get('USERNAME')
             if self.is_unique(username):
                 self.username = username
                 break

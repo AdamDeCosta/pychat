@@ -5,6 +5,7 @@ import asyncio
 import struct
 import json
 import time
+import calendar
 import re
 from lib import get_items, message_with_length
 
@@ -36,7 +37,8 @@ class ChatClient(asyncio.Protocol):
             while True:
                 response += socket.recv(r_length[0])
                 if len(response) >= r_length[0]:
-                    break;
+                    break
+
             print("pre: response: \n", response)
             response = json.loads(response)
             print("post: response: \n", response)
@@ -77,7 +79,7 @@ class ChatClient(asyncio.Protocol):
                 self.data = b''
                 self.length = None
             else:
-                #print(self.data)
+  
                 message = self.data[0:self.length]
                 message = json.loads(message.decode('ASCII'))
                 asyncio.ensure_future(self.message_handler(message), 
@@ -93,7 +95,7 @@ class ChatClient(asyncio.Protocol):
                     [
                         (self.username, 
                          dest.group()[1:], 
-                         time.gmtime(), 
+                         calendar.timegm(time.gmtime()), 
                          message)
                      ]
                 }).encode('ASCII')
@@ -102,7 +104,7 @@ class ChatClient(asyncio.Protocol):
                 { 'MESSAGES': 
                     [
                         (self.username, 'ALL', 
-                        time.gmtime(), 
+                        calendar.timegm(time.gmtime()), 
                         message)
                     ]
                 }).encode('ASCII')
