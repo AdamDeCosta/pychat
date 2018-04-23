@@ -75,6 +75,7 @@ class ChatClient(asyncio.Protocol):
                 self.data = b''
                 self.length = None
             else:
+                #print(self.data)
                 message = self.data[0:self.length]
                 message = json.loads(message.decode('ASCII'))
                 asyncio.ensure_future(self.message_handler(message), loop=self.loop)
