@@ -1,5 +1,6 @@
  # HEADER INFORMATION
 
+import argparse
 import asyncio
 import struct
 import json
@@ -185,9 +186,16 @@ class Server(asyncio.Protocol):
         return True
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
+    parser = argparse.ArgumentParser(description="Asynchronous chat server")
+    parser.add_argument('host', help="Hostname or IP")
+    parser.add_argument('-p', metavar="port", type=int, default=9000, 
+                        help="TCP port (default 1060)")
+    args = parser.parse_args()
 
-    coro = loop.create_server(lambda: Server(loop), 'localhost', 9000)
+    loop = asyncio.get_event_loop()
+    print("{}, {}".format(args.host, args.p))
+
+    coro = loop.create_server(lambda: Server(loop), args.host, args.p)
     server = loop.run_until_complete(coro)
 
     try:
