@@ -38,16 +38,9 @@ class ChatClient(asyncio.Protocol):
             while True:
                 response += socket.recv(r_length[0])
                 if len(response) >= r_length[0]:
-<<<<<<< HEAD
                     break
 
             response = json.loads(response)
-=======
-                    break;
-            #print("pre: response: \n", response)
-            response = json.loads(response)
-            #print("post: response: \n", response)
->>>>>>> upstream/master
 
             if response.get('USERNAME_ACCEPTED'):
                 #print(response.get('INFO'))
