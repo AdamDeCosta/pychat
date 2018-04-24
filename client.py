@@ -5,6 +5,7 @@ import asyncio
 import struct
 import json
 import time
+import calendar
 import re
 from lib import get_items, message_with_length
 
@@ -36,8 +37,14 @@ class ChatClient(asyncio.Protocol):
             while True:
                 response += socket.recv(r_length[0])
                 if len(response) >= r_length[0]:
+<<<<<<< HEAD
                     break;
             #print("pre: response: \n", response)
+=======
+                    break
+
+            print("pre: response: \n", response)
+>>>>>>> 6f5be15ba95aa560798058d7a084deaac698933d
             response = json.loads(response)
             #print("post: response: \n", response)
 
@@ -64,8 +71,16 @@ class ChatClient(asyncio.Protocol):
             if self.length > len(self.data):
                 pass
             else:
+<<<<<<< HEAD
                 message = json.loads(self.data[:self.length].decode('ASCII'))
                 asyncio.ensure_future(self.message_handler(message), loop=self.loop)
+=======
+  
+                message = self.data[0:self.length]
+                message = json.loads(message.decode('ASCII'))
+                asyncio.ensure_future(self.message_handler(message), 
+                                                           loop=self.loop)
+>>>>>>> 6f5be15ba95aa560798058d7a084deaac698933d
                 self.data = self.data[self.length:]
                 while True:
                     if(len(self.data) < 4):
@@ -90,7 +105,7 @@ class ChatClient(asyncio.Protocol):
                     [
                         (self.username, 
                          dest.group()[1:], 
-                         time.gmtime(), 
+                         calendar.timegm(time.gmtime()), 
                          message)
                      ]
                 }).encode('ASCII')
@@ -99,7 +114,7 @@ class ChatClient(asyncio.Protocol):
                 { 'MESSAGES': 
                     [
                         (self.username, 'ALL', 
-                        time.gmtime(), 
+                        calendar.timegm(time.gmtime()), 
                         message)
                     ]
                 }).encode('ASCII')
