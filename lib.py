@@ -11,8 +11,12 @@ def message_with_length(message):
     #print(message)
     return message
 
-def get_user_list(self):
-    return [key for key in self.clients]
+async def client_gen(self):
+    for key in self.clients:
+        yield key
+
+async def get_user_list(self):
+    return [key async for key in client_gen(self)]
 
 async def get_items(_list):
     for item in _list:

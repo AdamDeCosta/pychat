@@ -32,6 +32,7 @@ class ChatClient(asyncio.Protocol):
             socket.sendall(payload)
 
             r_length = socket.recv(4)
+            print(r_length)
             r_length = struct.unpack('! I', r_length)
             response = b''
             while True:
@@ -174,7 +175,7 @@ if __name__ == "__main__":
 
     client = ChatClient(loop)
 
-    coro = loop.create_connection(lambda: client, args.host, args.p, ssl=context)
+    coro = loop.create_connection(lambda: client, args.host, args.p)
     print('coro made')
     loop.run_until_complete(coro)
     print('coro ran')
