@@ -37,14 +37,14 @@ class ChatClient(asyncio.Protocol):
                 response += socket.recv(r_length[0])
                 if len(response) >= r_length[0]:
                     break;
-            print("pre: response: \n", response)
+            #print("pre: response: \n", response)
             response = json.loads(response)
-            print("post: response: \n", response)
+            #print("post: response: \n", response)
 
             if response.get('USERNAME_ACCEPTED'):
-                print(response.get('INFO'))
+                #print(response.get('INFO'))
                 self.user_list = response.get('USER_LIST')
-                print(response)
+                #print(response)
                 self.messages = response.get('MESSAGES')
                 output(self.messages)
                 break
@@ -55,35 +55,32 @@ class ChatClient(asyncio.Protocol):
        
     def data_received(self, data):
         self.data += data
-
-        # TODO: LOOP TO INTERPRET MESSAGES IF TONS ARE RECEIVED SIMULTANEOUSLY
-        if not self.length:
-            if len(self.data) < 4:
+        if len(self.data) < 4:
+            pass
+        else:
+            if not self.length:
+                self.length = struct.unpack('! I', self.data[:4])[0]
+                self.data = self.data[4:]
+            if self.length > len(self.data):
                 pass
             else:
-                self.length = struct.unpack('! I', self.data[0:4])[0]
-                if len(self.data) >= 4:
-                    self.data = data[4:]
-                else:
-                    self.data = b''
-
-        if self.length:
-            if len(self.data) < self.length:
-                pass
-            elif len(self.data) == self.length:
-                message = json.loads(self.data.decode('ASCII'))
-                asyncio.ensure_future(self.message_handler(message), 
-                                                           loop=self.loop)
-                self.data = b''
-                self.length = None
-            else:
-                #print(self.data)
-                message = self.data[0:self.length]
-                message = json.loads(message.decode('ASCII'))
-                asyncio.ensure_future(self.message_handler(message), 
-                                                           loop=self.loop)
+                message = json.loads(self.data[:self.length].decode('ASCII'))
+                asyncio.ensure_future(self.message_handler(message), loop=self.loop)
                 self.data = self.data[self.length:]
-                self.length = None
+                while True:
+                    if(len(self.data) < 4):
+                        self.length = None;
+                        break; 
+                    else:
+                        self.length = struct.unpack('! I', self.data[0:4])[0]
+                        self.data = self.data[4:]
+                        if self.length > len(self.data):
+                            break
+                        else:
+                            message = json.loads(self.data[:self.length].decode('ASCII'))
+                            asyncio.ensure_future(self.message_handler(message), loop=self.loop)
+                            self.data = self.data[:self.length]
+            
 
     def send_message(self, message):
         dest = re.search(r'@\w+', message)  # returns when @<word> is found
