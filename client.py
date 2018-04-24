@@ -30,17 +30,13 @@ class ChatClient(asyncio.Protocol):
             socket.sendall(payload)
 
             r_length = socket.recv(4)
-            print("pre: r_length: \n", r_length)
             r_length = struct.unpack('! I', r_length)
-            print("post: r_length: \n", r_length[0])
             response = b''
             while True:
                 response += socket.recv(r_length[0])
                 if len(response) >= r_length[0]:
                     break;
-            #print("pre: response: \n", response)
             response = json.loads(response)
-            #print("post: response: \n", response)
 
             if response.get('USERNAME_ACCEPTED'):
                 #print(response.get('INFO'))
@@ -121,7 +117,7 @@ class ChatClient(asyncio.Protocol):
             async for user in get_items(users_joined):
                 self.user_list.append(user)
                 print("User: {} has joined.".format(user))
-            print(self.user_list)
+            #print(self.user_list)
         
         users_left = message.get('USERS_LEFT')
         if users_left:
