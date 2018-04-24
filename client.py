@@ -7,12 +7,14 @@ import json
 import time
 import calendar
 import re
+import ssl
 from lib import get_items, message_with_length
 
 class ChatClient(asyncio.Protocol):
     
     def __init__(self, loop):
         self.loop = loop
+        print('init')
 
     def connection_made(self, transport):
         self.data = b''
@@ -30,12 +32,14 @@ class ChatClient(asyncio.Protocol):
             socket.sendall(payload)
 
             r_length = socket.recv(4)
+            print(r_length)
             r_length = struct.unpack('! I', r_length)
             response = b''
             while True:
                 response += socket.recv(r_length[0])
                 if len(response) >= r_length[0]:
-                    break;
+                    break
+
             response = json.loads(response)
 
             if response.get('USERNAME_ACCEPTED'):
@@ -157,9 +161,14 @@ if __name__ == "__main__":
     # Get arguments from command line
     parser = argparse.ArgumentParser(description="Asynchronous chat client")
     parser.add_argument('host', help="Hostname or IP", default="csi235.site")
-    parser.add_argument('-p', metavar="port", type=int, default=9000, 
-                        help="TCP port (default 1060)")
+    parser.add_argument('-p', metavar="port", type=int, default=9001, 
+                        help="TCP port (default 9001)")
+    parser.add_argument('-a', metavar='cafile', default=None,
+                        help='authority: path to CA certificate PEM file')
     args = parser.parse_args()
+
+    purpose = ssl.Purpose.CLIENT_AUTH
+    context = ssl.create_default_context(purpose, cafile=args.a)
 
     # Loop information and running
     loop = asyncio.get_event_loop()
