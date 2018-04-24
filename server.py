@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import struct
 import json
+import ssl
 from lib import *
 
 class Server(asyncio.Protocol):
@@ -69,13 +70,6 @@ class Server(asyncio.Protocol):
     def data_received(self, data):
         self.data += data
 
-        # TODO: REMOVE DEBUG
-        print("Received data: {}".format(data))
-        print(len(self.data))
-        print("length: {}".format(self.length))
-        # END DEBUG
-
-        # TODO: LOOP TO INTERPRET MESSAGES IF TONS ARE RECEIVED SIMULTANEOUSLY
         if not self.length:
             if len(self.data) < 4:
                 pass
@@ -190,12 +184,20 @@ if __name__ == "__main__":
     parser.add_argument('host', help="Hostname or IP")
     parser.add_argument('-p', metavar="port", type=int, default=9000, 
                         help="TCP port (default 9000)")
+    parser.add_argument('-a', metavar='cafile', default=None,
+                        help='authority: path to CA certificate PEM file')
+    parser.add_argument('-s', metavar='certfile', default=None,
+                        help='run as server: path to server PEM file')
     args = parser.parse_args()
+    
+    purpose = ssl.Purpose.SERVER_AUTH
+    context = ssl.create_default_context(purpose, cafile=args.a)
+    context.load_cert_chain(args.s)
 
     loop = asyncio.get_event_loop()
     print("{}, {}".format(args.host, args.p))
 
-    coro = loop.create_server(lambda: Server(loop), args.host, args.p)
+    coro = loop.create_server(lambda: Server(loop), args.host, args.p, ssl=context)
     server = loop.run_until_complete(coro)
 
     try:

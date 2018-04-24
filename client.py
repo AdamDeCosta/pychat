@@ -7,12 +7,14 @@ import json
 import time
 import calendar
 import re
+import ssl
 from lib import get_items, message_with_length
 
 class ChatClient(asyncio.Protocol):
     
     def __init__(self, loop):
         self.loop = loop
+        print('init')
 
     def connection_made(self, transport):
         self.data = b''
@@ -30,18 +32,14 @@ class ChatClient(asyncio.Protocol):
             socket.sendall(payload)
 
             r_length = socket.recv(4)
-            print("pre: r_length: \n", r_length)
             r_length = struct.unpack('! I', r_length)
-            print("post: r_length: \n", r_length[0])
             response = b''
             while True:
                 response += socket.recv(r_length[0])
                 if len(response) >= r_length[0]:
                     break
 
-            print("pre: response: \n", response)
             response = json.loads(response)
-            print("post: response: \n", response)
 
             if response.get('USERNAME_ACCEPTED'):
                 print(response.get('INFO'))
@@ -58,7 +56,6 @@ class ChatClient(asyncio.Protocol):
     def data_received(self, data):
         self.data += data
 
-        # TODO: LOOP TO INTERPRET MESSAGES IF TONS ARE RECEIVED SIMULTANEOUSLY
         if not self.length:
             if len(self.data) < 4:
                 pass
@@ -162,9 +159,14 @@ if __name__ == "__main__":
     # Get arguments from command line
     parser = argparse.ArgumentParser(description="Asynchronous chat client")
     parser.add_argument('host', help="Hostname or IP", default="csi235.site")
-    parser.add_argument('-p', metavar="port", type=int, default=9000, 
-                        help="TCP port (default 1060)")
+    parser.add_argument('-p', metavar="port", type=int, default=9001, 
+                        help="TCP port (default 9001)")
+    parser.add_argument('-a', metavar='cafile', default=None,
+                        help='authority: path to CA certificate PEM file')
     args = parser.parse_args()
+
+    purpose = ssl.Purpose.CLIENT_AUTH
+    context = ssl.create_default_context(purpose, cafile=args.a)
 
     # Loop information and running
     loop = asyncio.get_event_loop()
@@ -172,8 +174,10 @@ if __name__ == "__main__":
 
     client = ChatClient(loop)
 
-    coro = loop.create_connection(lambda: client, args.host, args.p)
+    coro = loop.create_connection(lambda: client, args.host, args.p, ssl=context)
+    print('coro made')
     loop.run_until_complete(coro)
+    print('coro ran')
 
     loop.run_until_complete(handle_user_input(loop, client))
     
