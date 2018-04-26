@@ -29,6 +29,9 @@ class Server(asyncio.Protocol):
     messages = {}
 
     def __init__(self, loop):
+        """
+        An asynchronous chat server which is to be connected to by chat clients
+        """
         self.data = b''
         self.length = None
         self.loop = loop
@@ -36,11 +39,17 @@ class Server(asyncio.Protocol):
             Server.messages = {'MESSAGES': []}
 
     def connection_made(self, transport):
+        """
+        Initial connection made configuration
+        """
         peername = transport.get_extra_info('peername')
         print('Connection from {}'.format(peername))
         self.transport = transport
 
     def data_received(self, data):
+        """
+        Handles data being received from clients
+        """
         self.data += data
 
         if not self.length:
@@ -72,28 +81,37 @@ class Server(asyncio.Protocol):
                 self.length = None
     
     async def update_message_list(self, messages):
+        """
+        Extends the server message list
+        """
         Server.messages.get('MESSAGES').extend(messages)
 
     async def handle_username(self, username):
-            user_list = await get_user_list(self) or []
+        """
+        Handles when a unique username is sent to the server
+        """
+        user_list = await get_user_list(self) or []
 
-            # send user_joined to all connections
-            payload = json.dumps({'USERS_JOINED': [self.username]}).encode('ASCII')
-            await self.message_handler(payload)
+        # send user_joined to all connections
+        payload = json.dumps({'USERS_JOINED': [self.username]}).encode('ASCII')
+        await self.message_handler(payload)
 
-            payload = json.dumps(
-                {
-                    'USERNAME_ACCEPTED': True, 
-                    'INFO': 'Welcome!', 
-                    'USER_LIST': user_list, 
-                    'MESSAGES': Server.messages.get('MESSAGES')
-                }).encode('ASCII')
+        payload = json.dumps(
+            {
+                'USERNAME_ACCEPTED': True, 
+                'INFO': 'Welcome!', 
+                'USER_LIST': user_list, 
+                'MESSAGES': Server.messages.get('MESSAGES')
+            }).encode('ASCII')
             
-            payload = message_with_length(payload)
-            self.transport.write(payload)
+        payload = message_with_length(payload)
+        self.transport.write(payload)
                 
 
     async def message_handler(self, message):
+        """
+        Handles messages sent to the server
+        """
         message = json.loads(message)
 
         async for key in get_items(message):
@@ -126,10 +144,16 @@ class Server(asyncio.Protocol):
                     self.transport.write(payload)
 
     async def get_clients(self):
+        """
+        Generator to get the list of clients for the server
+        """
         for username, transport in self.clients.items():
             yield (username, transport)
 
     async def send_message(self, messages):
+        """
+        Sends messages to the correct client (ALL or Private)
+        """
         all_messages = []
         async for message in get_items(messages):
             if message[1] == 'ALL':
@@ -166,6 +190,9 @@ class Server(asyncio.Protocol):
             
 
     def connection_lost(self, exc):
+        """
+        Handles clients disconnecting from the server
+        """
         print('Client left: Message {}'.format(exc))
         del self.clients[self.username]
         payload = json.dumps({'USERS_LEFT': [self.username]}).encode('ASCII')
@@ -173,6 +200,9 @@ class Server(asyncio.Protocol):
 
 
     async def is_unique(self, username):
+        """
+        Checks if the username is a unique key in self.clients
+        """
         async for client in client_gen(self):
             if username == client:
                 return False

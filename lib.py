@@ -18,21 +18,30 @@ import struct
 import asyncio
 
 def message_with_length(message):
-    #print(message)
+    """
+    Converts message to <4byteINT>{json} format
+    """
     pack_format = '! I'
-    #print(pack_format)
     message_len = struct.pack(pack_format, len(message))
     message = b''.join([message_len, message])
-    #print(message)
     return message
 
 async def client_gen(self):
+    """
+    Generator to just get usernames in self.clients dict
+    """
     for key in self.clients:
         yield key
 
 async def get_user_list(self):
+    """
+    Returns a list of usernames in self.clients
+    """
     return [key async for key in client_gen(self)]
 
 async def get_items(_list):
+    """
+    Generator to get items in a list
+    """
     for item in _list:
         yield item

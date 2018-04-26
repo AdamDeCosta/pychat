@@ -29,15 +29,15 @@ from lib import get_items, message_with_length
 class ChatClient(asyncio.Protocol):
     
     def __init__(self, loop):
-        '''
-        initializes chat client (allows us to stop the loop)
-        '''
+        """
+        An asynchronous chat client used to connect to the corresponding server
+        """
         self.loop = loop
 
     def connection_made(self, transport):
-        '''
+        """
         Does setup when connection to the server is made
-        '''
+        """
         self.data = b''
         self.length = None
         self.transport = transport
@@ -51,9 +51,9 @@ class ChatClient(asyncio.Protocol):
         self.transport.write(payload)
 
     def data_received(self, data):
-        '''
+        """
         Receive data from the server and then call the message handler
-        '''
+        """
         self.data += data
         if len(self.data) < 4:
             pass
@@ -88,9 +88,9 @@ class ChatClient(asyncio.Protocol):
             
 
     def send_message(self, message):
-        '''
+        """
         Sends messages to the server
-        '''
+        """
         dest = re.search(r'@\w+', message)  # returns when @<word> is found
         if dest:
             message = json.dumps(
@@ -116,9 +116,9 @@ class ChatClient(asyncio.Protocol):
         self.transport.write(message)
 
     async def message_handler(self, message):
-        '''
+        """
         Handles messages received from the server
-        '''
+        """
         messages = message.get('MESSAGES')
         if messages:
             output(messages)
@@ -155,9 +155,9 @@ class ChatClient(asyncio.Protocol):
             output([['Server', None, time.gmtime(), error]])
 
     def connection_lost(self, exc):
-        '''
+        """
         If server goes down, display error and stop the client.
-        '''
+        """
         if exc:
             print('Server disconnected: Message {}'.format(exc))
         else:
@@ -165,9 +165,9 @@ class ChatClient(asyncio.Protocol):
         self.loop.stop()
 
 def output(messages):
-    '''
+    """
     Output to whatever we have our front end to be (console)
-    '''
+    """
     for m in messages:
         print("{}: {}".format(m[0], m[3]))
 
