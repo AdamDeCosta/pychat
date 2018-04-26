@@ -51,35 +51,36 @@ class Server(asyncio.Protocol):
         Handles data being received from clients
         """
         self.data += data
-
-        if not self.length:
-            if len(self.data) < 4:
+        if len(self.data) < 4:
+            pass
+        else:
+            if not self.length:
+                self.length = struct.unpack('! I', self.data[:4])[0]
+                self.data = self.data[4:]
+            if self.length > len(self.data):
                 pass
             else:
-                self.length = struct.unpack('! I', self.data[0:4])[0]
-                if len(self.data) >= 4:
-                    self.data = data[4:]
-                else:
-                    self.data = b''
-
-        if self.length:
-            if len(self.data) < self.length:
-                pass
-            elif len(self.data) == self.length:
+                message = self.data[:self.length].decode('ASCII')
                 asyncio.ensure_future(
-                    self.message_handler(self.data), loop=self.loop)
-
-                self.data = b''
-                self.length = None
-            else:
-                message = self.data[0:self.length]
-
-                asyncio.ensure_future(
-                    self.message_handler(self.data), loop=self.loop)
-
+                    self.message_handler(message), 
+                    loop=self.loop)
                 self.data = self.data[self.length:]
-                self.length = None
-    
+                while True:
+                    if(len(self.data) < 4):
+                        self.length = None
+                        break; 
+                    else:
+                        self.length = struct.unpack('! I', self.data[0:4])[0]
+                        self.data = self.data[4:]
+                        if self.length > len(self.data):
+                            break
+                        else:
+                            message = self.data[:self.length].decode('ASCII')
+                            asyncio.ensure_future(
+                                self.message_handler(message), 
+                                loop=self.loop)
+                            self.data = self.data[:self.length]
+
     async def update_message_list(self, messages):
         """
         Extends the server message list
@@ -113,7 +114,6 @@ class Server(asyncio.Protocol):
         Handles messages sent to the server
         """
         message = json.loads(message)
-
         async for key in get_items(message):
 
             if key == 'USERS_LEFT' or key == 'USERS_JOINED':

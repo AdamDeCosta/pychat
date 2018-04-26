@@ -128,12 +128,14 @@ class ChatClient(asyncio.Protocol):
             async for user in get_items(users_joined):
                 self.user_list.append(user)
                 print("User: {} has joined.".format(user))
+                print(self.user_list)
         
         users_left = message.get('USERS_LEFT')
         if users_left:
             async for user in get_items(users_left):
                 self.user_list.remove(user)
                 print("User: {} has left.".format(user))
+                print(self.user_list)
 
         username_accepted = message.get('USERNAME_ACCEPTED')
         if username_accepted == False:
@@ -142,6 +144,7 @@ class ChatClient(asyncio.Protocol):
             payload = json.dumps({'USERNAME': self.username})
             payload = message_with_length(payload.encode('ASCII'))
             self.transport.write(payload)
+            
         elif username_accepted == True:
             print("Server: {}".format(message.get("INFO")))
 
