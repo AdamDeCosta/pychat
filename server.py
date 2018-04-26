@@ -71,8 +71,8 @@ class Server(asyncio.Protocol):
                 self.data = self.data[self.length:]
                 self.length = None
     
-    async def update_message_list(self, message):
-        Server.messages.get('MESSAGES').extend(message.get('MESSAGES'))
+    async def update_message_list(self, messages):
+        Server.messages.get('MESSAGES').extend(messages)
 
     async def handle_username(self, username):
             user_list = await get_user_list(self) or []
@@ -105,7 +105,6 @@ class Server(asyncio.Protocol):
                     client[1].write(payload)
 
             elif key == 'MESSAGES':
-                await self.update_message_list(message)
                 await self.send_message(message.get(key))  # key = 'MESSAGES'
 
             elif key == 'USERNAME':
@@ -160,6 +159,7 @@ class Server(asyncio.Protocol):
                     'MESSAGES': all_messages
                 }).encode('ASCII')
             payload = message_with_length(payload)
+            await self.update_message_list(all_messages)
             
             async for client in self.get_clients():
                 client[1].write(payload)
