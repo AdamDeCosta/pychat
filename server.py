@@ -68,7 +68,7 @@ class Server(asyncio.Protocol):
                 while True:
                     if(len(self.data) < 4):
                         self.length = None
-                        break; 
+                        break 
                     else:
                         self.length = struct.unpack('! I', self.data[0:4])[0]
                         self.data = self.data[4:]

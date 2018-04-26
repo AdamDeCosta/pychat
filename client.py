@@ -33,6 +33,7 @@ class ChatClient(asyncio.Protocol):
         An asynchronous chat client used to connect to the corresponding server
         """
         self.loop = loop
+        self.logged_in = False
 
     def connection_made(self, transport):
         """
@@ -72,7 +73,7 @@ class ChatClient(asyncio.Protocol):
                 while True:
                     if(len(self.data) < 4):
                         self.length = None
-                        break; 
+                        break 
                     else:
                         self.length = struct.unpack('! I', self.data[0:4])[0]
                         self.data = self.data[4:]
@@ -98,7 +99,7 @@ class ChatClient(asyncio.Protocol):
                     [
                         (self.username, 
                          dest.group()[1:], 
-                         calendar.timegm(time.gmtime()), 
+                         time.gmtime(), 
                          message)
                      ]
                 }).encode('ASCII')
@@ -107,7 +108,7 @@ class ChatClient(asyncio.Protocol):
                 { 'MESSAGES': 
                     [
                         (self.username, 'ALL', 
-                        calendar.timegm(time.gmtime()), 
+                        time.gmtime(), 
                         message)
                     ]
                 }).encode('ASCII')
@@ -144,8 +145,8 @@ class ChatClient(asyncio.Protocol):
             payload = json.dumps({'USERNAME': self.username})
             payload = message_with_length(payload.encode('ASCII'))
             self.transport.write(payload)
-            
         elif username_accepted == True:
+            self.logged_in = True
             print("Server: {}".format(message.get("INFO")))
 
         user_list = message.get('USER_LIST')
@@ -184,16 +185,18 @@ def handle_user_input(loop, client):
     or if user inputs '/list' prints client list
     otherwise just echos user input
     """
-
     while True:
-        message = yield from loop.run_in_executor(None, input, "> ")
-        if message == "quit":
-            loop.stop()
-            return
-        elif message.lower() == "/list":
-            print(client.user_list)
+        if client.logged_in:
+            message = yield from loop.run_in_executor(None, input, "> ")
+            if message == "quit":
+                loop.stop()
+                return
+            elif message.lower() == "/list":
+                print(client.user_list)
+            else:
+                yield client.send_message(message)
         else:
-            client.send_message(message)
+            yield
 
 
 if __name__ == "__main__":
