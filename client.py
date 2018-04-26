@@ -99,7 +99,7 @@ class ChatClient(asyncio.Protocol):
                     [
                         (self.username, 
                          dest.group()[1:], 
-                         time.gmtime(), 
+                         calendar.timegm(time.gmtime()), 
                          message)
                      ]
                 }).encode('ASCII')
@@ -108,7 +108,7 @@ class ChatClient(asyncio.Protocol):
                 { 'MESSAGES': 
                     [
                         (self.username, 'ALL', 
-                        time.gmtime(), 
+                        calendar.timegm(time.gmtime()), 
                         message)
                     ]
                 }).encode('ASCII')
@@ -173,7 +173,7 @@ def output(messages):
     Output to whatever we have our front end to be (console)
     """
     for m in messages:
-        print("{}: {}".format(m[0], m[3]))
+        print("{}: \tSENT TO {} \t {}".format(m[0],m[1], m[3]))
 
         
 

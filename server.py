@@ -35,6 +35,7 @@ class Server(asyncio.Protocol):
         self.data = b''
         self.length = None
         self.loop = loop
+        self.not_acceptable = ['ALL', '']
         if not Server.messages:
             Server.messages = {'MESSAGES': []}
 
@@ -128,17 +129,25 @@ class Server(asyncio.Protocol):
             elif key == 'USERNAME':
                 username = message.get(key)  # key = 'USERNAME'
 
-                if await self.is_unique(username):
+                if await self.is_unique(username) and await self.is_acceptable(username):
                     self.username = username
                     self.clients.update({username: self.transport})
                     await self.handle_username(username)
 
                 else:
-                    payload = json.dumps(
-                    {
-                        'USERNAME_ACCEPTED': False, 
-                        'INFO': 'Username already in use!'
-                    }).encode('ASCII')
+                    if not await self.is_acceptable(username):
+                        payload = json.dumps(
+                        {
+                            'USERNAME_ACCEPTED': False,
+                            'INFO': 'Not acceptable username\n' +
+                                    'Requirements: 1 Word, not "ALL" or ""'
+                        }).encode('ASCII')  
+                    else:
+                        payload = json.dumps(
+                        {
+                            'USERNAME_ACCEPTED': False, 
+                            'INFO': 'Username already in use!'
+                        }).encode('ASCII')
 
                     payload = message_with_length(payload)
                     self.transport.write(payload)
@@ -198,6 +207,16 @@ class Server(asyncio.Protocol):
         payload = json.dumps({'USERS_LEFT': [self.username]}).encode('ASCII')
         asyncio.ensure_future(self.message_handler(payload))
 
+    async def is_acceptable(self, username):
+        """
+        Tests if username is acceptable
+        """
+        if len(username.split(' ')) > 1:
+            return False
+        async for name in get_items(self.not_acceptable):
+            if username == name:
+                return False
+        return True
 
     async def is_unique(self, username):
         """
