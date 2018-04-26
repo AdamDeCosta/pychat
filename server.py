@@ -41,11 +41,6 @@ class Server(asyncio.Protocol):
             if len(self.data) < self.length:
                 pass
             elif len(self.data) == self.length:
-                # TODO: REMOVE DEBUG
-                print("Received message: {}".format(self.data))
-                #asyncio.ensure_future(
-                #    self.update_message_list(self.data.decode('ASCII')))
-
                 asyncio.ensure_future(
                     self.message_handler(self.data), loop=self.loop)
 
@@ -53,12 +48,6 @@ class Server(asyncio.Protocol):
                 self.length = None
             else:
                 message = self.data[0:self.length]
-                # TODO: REMOVE DEBUG
-                # TODO: MOVE THIS
-                #asyncio.ensure_future(
-                #    self.update_message_list(message.decode('ASCII')))
-
-                print("Received message: {}".format(message))
 
                 asyncio.ensure_future(
                     self.message_handler(self.data), loop=self.loop)
@@ -70,7 +59,7 @@ class Server(asyncio.Protocol):
         Server.messages.get('MESSAGES').extend(message.get('MESSAGES'))
 
     async def handle_username(self, username):
-            user_list = await get_user_list(self)
+            user_list = await get_user_list(self) or []
 
             # send user_joined to all connections
             payload = json.dumps({'USERS_JOINED': [self.username]}).encode('ASCII')
@@ -100,17 +89,17 @@ class Server(asyncio.Protocol):
                     client[1].write(payload)
 
             elif key == 'MESSAGES':
-                print(message.get(key))
                 await self.update_message_list(message)
                 await self.send_message(message.get(key))  # key = 'MESSAGES'
 
             elif key == 'USERNAME':
                 username = message.get(key)  # key = 'USERNAME'
-                print(username)
+
                 if await self.is_unique(username):
                     self.username = username
-                    await self.handle_username(username)
                     self.clients.update({username: self.transport})
+                    await self.handle_username(username)
+
                 else:
                     payload = json.dumps(
                     {
@@ -185,14 +174,14 @@ if __name__ == "__main__":
                         help='run as server: path to server PEM file')
     args = parser.parse_args()
     
-    purpose = ssl.Purpose.SERVER_AUTH
+    purpose = ssl.Purpose.CLIENT_AUTH
     context = ssl.create_default_context(purpose, cafile=args.a)
     context.load_cert_chain(args.s)
 
     loop = asyncio.get_event_loop()
     print("{}, {}".format(args.host, args.p))
 
-    coro = loop.create_server(lambda: Server(loop), args.host, args.p)
+    coro = loop.create_server(lambda: Server(loop), args.host, args.p, ssl=context)
     server = loop.run_until_complete(coro)
 
     try:

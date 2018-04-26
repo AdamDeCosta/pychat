@@ -14,46 +14,20 @@ class ChatClient(asyncio.Protocol):
     
     def __init__(self, loop):
         self.loop = loop
-        print('init')
 
     def connection_made(self, transport):
         self.data = b''
         self.length = None
         self.transport = transport
+        self.user_list = []
         print("Made Connection!")
 
-        socket = self.transport.get_extra_info('socket')
-        socket.setblocking(1)
-        while True:
-            self.username = input("Enter username: ")
-            payload = '{"USERNAME": "' + self.username + '"}'
-            payload = message_with_length(payload.encode('ASCII'))
-            print(payload)
-            socket.sendall(payload)
+        # Initial username sending
+        self.username = input("Enter username: ")
+        payload = json.dumps({'USERNAME': self.username})
+        payload = message_with_length(payload.encode('ASCII'))
+        self.transport.write(payload)
 
-            r_length = socket.recv(4)
-            print(r_length)
-            r_length = struct.unpack('! I', r_length)
-            response = b''
-            while True:
-                response += socket.recv(r_length[0])
-                if len(response) >= r_length[0]:
-                    break
-
-            response = json.loads(response)
-
-            if response.get('USERNAME_ACCEPTED'):
-                #print(response.get('INFO'))
-                self.user_list = response.get('USER_LIST')
-                #print(response)
-                self.messages = response.get('MESSAGES')
-                output(self.messages)
-                break
-            else:
-                print(response.get('INFO'))
-
-        socket.setblocking(0)
-       
     def data_received(self, data):
         '''
 
@@ -73,7 +47,7 @@ class ChatClient(asyncio.Protocol):
                 self.data = self.data[self.length:]
                 while True:
                     if(len(self.data) < 4):
-                        self.length = None;
+                        self.length = None
                         break; 
                     else:
                         self.length = struct.unpack('! I', self.data[0:4])[0]
@@ -121,16 +95,38 @@ class ChatClient(asyncio.Protocol):
             async for user in get_items(users_joined):
                 self.user_list.append(user)
                 print("User: {} has joined.".format(user))
-            #print(self.user_list)
         
         users_left = message.get('USERS_LEFT')
         if users_left:
             async for user in get_items(users_left):
                 self.user_list.remove(user)
                 print("User: {} has left.".format(user))
+
+        username_accepted = message.get('USERNAME_ACCEPTED')
+        if username_accepted == False:
+            print("Server: {}".format(message.get('INFO')))
+            self.username = input("Enter a username: ")
+            payload = json.dumps({'USERNAME': self.username})
+            payload = message_with_length(payload.encode('ASCII'))
+            self.transport.write(payload)
+        elif username_accepted == True:
+            print("Server: {}".format(message.get("INFO")))
+
+        user_list = message.get('USER_LIST')
+        if user_list:
+            self.user_list = user_list
+            print(self.user_list)
+
         error = message.get('ERROR')
         if error:
             output([['Server', None, time.gmtime(), error]])
+
+    def connection_lost(self, exc):
+        if exc:
+            print('Server disconnected: Message {}'.format(exc))
+        else:
+            print("Server disconnected.")
+        self.loop.stop()
 
 def output(messages):
     '''
@@ -154,7 +150,10 @@ def handle_user_input(loop, client):
         if message == "quit":
             loop.stop()
             return
-        client.send_message(message)
+        elif message.lower() == "/list":
+            print(client.user_list)
+        else:
+            client.send_message(message)
 
 
 if __name__ == "__main__":
@@ -176,12 +175,10 @@ if __name__ == "__main__":
 
     client = ChatClient(loop)
 
-    coro = loop.create_connection(lambda: client, args.host, args.p)
+    coro = loop.create_connection(lambda: client, args.host, args.p, ssl=context)
     loop.run_until_complete(coro)
 
-    loop.run_until_complete(handle_user_input(loop, client))
-    
     try:
-        loop.run_forever()
+        loop.run_until_complete(handle_user_input(loop, client))
     finally:
         loop.close()
