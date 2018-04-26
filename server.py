@@ -1,4 +1,20 @@
- # HEADER INFORMATION
+"""server.py
+
+    Run python server.py [args]
+
+Author:              Adam DeCosta
+Class:               CSI-235
+Assignment:          Final Project
+Date Assigned:       4/09/2018
+Due Date:            4/26/2018 11:59 PM
+
+Description:
+An asynchronous chat server which is to be connected to by chat clients
+
+Champlain College CSI-235, Spring 2018
+The following code was written by Adam DeCosta (adam.decosta@mymail.champlain.edu)
+and Kevin Eaton (kevin.eaton@mymail.champlain.edu)
+"""
 
 import argparse
 import asyncio

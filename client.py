@@ -1,4 +1,20 @@
-# HEADER INFORMATION
+"""client.py
+
+    Run python client.py [args]
+
+Author:              Adam DeCosta
+Class:               CSI-235
+Assignment:          Final Project
+Date Assigned:       4/09/2018
+Due Date:            4/26/2018 11:59 PM
+
+Description:
+An asynchronous chat client used to connect to the corresponding server
+
+Champlain College CSI-235, Spring 2018
+The following code was written by Adam DeCosta (adam.decosta@mymail.champlain.edu)
+and Kevin Eaton (kevin.eaton@mymail.champlain.edu)
+"""
 
 import argparse
 import asyncio
@@ -13,9 +29,15 @@ from lib import get_items, message_with_length
 class ChatClient(asyncio.Protocol):
     
     def __init__(self, loop):
+        '''
+        initializes chat client (allows us to stop the loop)
+        '''
         self.loop = loop
 
     def connection_made(self, transport):
+        '''
+        Does setup when connection to the server is made
+        '''
         self.data = b''
         self.length = None
         self.transport = transport
@@ -30,7 +52,7 @@ class ChatClient(asyncio.Protocol):
 
     def data_received(self, data):
         '''
-
+        Receive data from the server and then call the message handler
         '''
         self.data += data
         if len(self.data) < 4:
@@ -43,7 +65,9 @@ class ChatClient(asyncio.Protocol):
                 pass
             else:
                 message = json.loads(self.data[:self.length].decode('ASCII'))
-                asyncio.ensure_future(self.message_handler(message), loop=self.loop)
+                asyncio.ensure_future(
+                    self.message_handler(message), 
+                    loop=self.loop)
                 self.data = self.data[self.length:]
                 while True:
                     if(len(self.data) < 4):
@@ -55,12 +79,18 @@ class ChatClient(asyncio.Protocol):
                         if self.length > len(self.data):
                             break
                         else:
-                            message = json.loads(self.data[:self.length].decode('ASCII'))
-                            asyncio.ensure_future(self.message_handler(message), loop=self.loop)
+                            message = json.loads(
+                                self.data[:self.length].decode('ASCII'))
+                            asyncio.ensure_future(
+                                self.message_handler(message), 
+                                loop=self.loop)
                             self.data = self.data[:self.length]
             
 
     def send_message(self, message):
+        '''
+        Sends messages to the server
+        '''
         dest = re.search(r'@\w+', message)  # returns when @<word> is found
         if dest:
             message = json.dumps(
@@ -86,6 +116,9 @@ class ChatClient(asyncio.Protocol):
         self.transport.write(message)
 
     async def message_handler(self, message):
+        '''
+        Handles messages received from the server
+        '''
         messages = message.get('MESSAGES')
         if messages:
             output(messages)
@@ -122,6 +155,9 @@ class ChatClient(asyncio.Protocol):
             output([['Server', None, time.gmtime(), error]])
 
     def connection_lost(self, exc):
+        '''
+        If server goes down, display error and stop the client.
+        '''
         if exc:
             print('Server disconnected: Message {}'.format(exc))
         else:
@@ -130,7 +166,7 @@ class ChatClient(asyncio.Protocol):
 
 def output(messages):
     '''
-    Output to whatever we have our front end to be
+    Output to whatever we have our front end to be (console)
     '''
     for m in messages:
         print("{}: {}".format(m[0], m[3]))
@@ -142,6 +178,7 @@ def handle_user_input(loop, client):
     """ 
     reads from stdin in separate thread
     if user inputs 'quit' stops the event loop
+    or if user inputs '/list' prints client list
     otherwise just echos user input
     """
 
