@@ -2,7 +2,7 @@
 
     Run python server.py [args]
 
-Author:              Adam DeCosta
+Author:              Adam DeCosta & Kevin Eaton
 Class:               CSI-235
 Assignment:          Final Project
 Date Assigned:       4/09/2018
@@ -22,6 +22,7 @@ import struct
 import json
 import ssl
 from lib import *
+
 
 class Server(asyncio.Protocol):
 
@@ -108,7 +109,6 @@ class Server(asyncio.Protocol):
             
         payload = message_with_length(payload)
         self.transport.write(payload)
-                
 
     async def message_handler(self, message):
         """
@@ -196,7 +196,6 @@ class Server(asyncio.Protocol):
             
             async for client in self.get_clients():
                 client[1].write(payload)
-            
 
     def connection_lost(self, exc):
         """

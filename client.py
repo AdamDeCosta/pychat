@@ -2,7 +2,7 @@
 
     Run python client.py [args]
 
-Author:              Adam DeCosta
+Author:              Adam DeCosta & Kevin Eaton
 Class:               CSI-235
 Assignment:          Final Project
 Date Assigned:       4/09/2018
@@ -25,6 +25,7 @@ import calendar
 import re
 import ssl
 from lib import get_items, message_with_length
+
 
 class ChatClient(asyncio.Protocol):
     
@@ -86,7 +87,6 @@ class ChatClient(asyncio.Protocol):
                                 self.message_handler(message), 
                                 loop=self.loop)
                             self.data = self.data[:self.length]
-            
 
     def send_message(self, message):
         """
@@ -168,6 +168,7 @@ class ChatClient(asyncio.Protocol):
             print("Server disconnected.")
         self.loop.stop()
 
+
 def output(messages):
     """
     Output to whatever we have our front end to be (console)
@@ -175,7 +176,6 @@ def output(messages):
     for m in messages:
         print("{}: \tSENT TO {} \t {}".format(m[0],m[1], m[3]))
 
-        
 
 @asyncio.coroutine
 def handle_user_input(loop, client):

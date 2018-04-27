@@ -1,6 +1,6 @@
 """lib.py
 
-Author:              Adam DeCosta
+Author:              Adam DeCosta & Kevin Eaton
 Class:               CSI-235
 Assignment:          Final Project
 Date Assigned:       4/09/2018
@@ -16,6 +16,7 @@ and Kevin Eaton (kevin.eaton@mymail.champlain.edu)
 
 import struct
 import asyncio
+
 
 def message_with_length(message):
     """
